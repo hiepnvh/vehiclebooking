@@ -1,0 +1,994 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="vehicle-booking-process" name="Office - Quy trình đặt xe" isExecutable="true">
+    <bpmn:startEvent id="StartCarBooking" name="Người đi làm form yêu cầu" camunda:formKey="embedded:app:forms/create-request-form.html" camunda:initiator="owner">
+      <bpmn:extensionElements>
+        <camunda:executionListener expression="${execution.setVariable(&#34;owner&#34;,currentUser())}" event="start" />
+        <camunda:executionListener class="vn.gmobile.vehiclebooking.listener.InitVariables" event="end" />
+      </bpmn:extensionElements>
+      <bpmn:outgoing>SequenceFlow_1jzz2vx</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_19sprnd" name="Duyệt?">
+      <bpmn:incoming>SequenceFlow_1hc2uql</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_lineManagerNotApprroved</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_07gfgpg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_1ct5c6a" name="Có xe/thẻ taxi?" default="SequenceFlow_0qdc3yv">
+      <bpmn:incoming>SequenceFlow_19j99y8</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1smsb7g</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_0qdc3yv</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_0wfv67t" name="Đã thông báo lễ tân để push">
+      <bpmn:incoming>SequenceFlow_13vol5b</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_0ft5id6" name="Lựa chọn?" default="SequenceFlow_1jkj2ld">
+      <bpmn:incoming>SequenceFlow_0g42tdr</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0q2m4a2</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1jkj2ld</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_1lmz4ht" name="Đã nhắc người đi báo cáo">
+      <bpmn:incoming>SequenceFlow_18vr3dq</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_1umxeg7" name="Y/c bị từ chối">
+      <bpmn:incoming>SequenceFlow_0ibh7bu</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="SendTask_12mrk3j" name="Hệ thống thông báo người đặt" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>Yêu cầu của anh/chị không được phê duyệt bởi quản lý trực tiếp.]]></camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${requester.getMail()}sms</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_lineManagerNotApprroved</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0ibh7bu</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="EndEvent_0encdue" name="Y/c bị từ chối">
+      <bpmn:incoming>SequenceFlow_14lpg7c</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="SendTask_1h9b21l" name="Hệ thống thông báo người đặt" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe không thành công</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi  Anh/Chị: ${owner},<br/><br/>	Hiện tại các xe của Công ty đã được sử dụng hết. anh /chị vui lòng đợi lễ tân liên hệ lại.<br/><br/>Cảm ơn!.]]></camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${requester.getMail()}sms</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1smsb7g</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_14lpg7c</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_1pw3hcy" name="Giờ về + 1/2 ngày" cancelActivity="false" attachedToRef="UserTask_0e52eba">
+      <bpmn:outgoing>SequenceFlow_0gyv94m</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">${dateTimeHelper.jodaDateToString(dateTimeHelper.stringToJodaDate(stopTime).plusHours(12))}</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="BoundaryEvent_0c45o5u" name="Giờ về + 4h" cancelActivity="false" attachedToRef="UserTask_0e52eba">
+      <bpmn:outgoing>SequenceFlow_1niht6v</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">${dateTimeHelper.jodaDateToString(dateTimeHelper.stringToJodaDate(stopTime).plusHours(4))}</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1jzz2vx" sourceRef="StartCarBooking" targetRef="SendTask_09wb76v" />
+    <bpmn:sequenceFlow id="SequenceFlow_1hc2uql" sourceRef="UserTask_0saz5wd" targetRef="ExclusiveGateway_19sprnd" />
+    <bpmn:sequenceFlow id="SequenceFlow_lineManagerNotApprroved" name="N" sourceRef="ExclusiveGateway_19sprnd" targetRef="SendTask_12mrk3j">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{lineManagerApproved== 'no'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_07gfgpg" name="Y" sourceRef="ExclusiveGateway_19sprnd" targetRef="SendTask_1gzx58u">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{lineManagerApproved== 'yes'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_19j99y8" sourceRef="UserTask_12rxbec" targetRef="ExclusiveGateway_1ct5c6a" />
+    <bpmn:sequenceFlow id="SequenceFlow_1smsb7g" name="N" sourceRef="ExclusiveGateway_1ct5c6a" targetRef="SendTask_1h9b21l">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{vehicleType== 'none'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_0qdc3yv" name="Y" sourceRef="ExclusiveGateway_1ct5c6a" targetRef="ExclusiveGateway_0m76rsp" />
+    <bpmn:sequenceFlow id="SequenceFlow_0vt8tj0" name="Nếu đi xe cty" sourceRef="ExclusiveGateway_0m76rsp" targetRef="SendTask_0b8jqma">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{vehicleType == 'car'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_0gyv94m" sourceRef="BoundaryEvent_1pw3hcy" targetRef="InclusiveGateway_1243rpw" />
+    <bpmn:sequenceFlow id="SequenceFlow_13vol5b" sourceRef="SendTask_0okapo5" targetRef="EndEvent_0wfv67t" />
+    <bpmn:sequenceFlow id="SequenceFlow_0g42tdr" sourceRef="UserTask_0e52eba" targetRef="ExclusiveGateway_0ft5id6" />
+    <bpmn:sequenceFlow id="SequenceFlow_1niht6v" sourceRef="BoundaryEvent_0c45o5u" targetRef="SendTask_1qfpa06" />
+    <bpmn:sequenceFlow id="SequenceFlow_18vr3dq" sourceRef="SendTask_1qfpa06" targetRef="EndEvent_1lmz4ht" />
+    <bpmn:sequenceFlow id="SequenceFlow_0ibh7bu" sourceRef="SendTask_12mrk3j" targetRef="EndEvent_1umxeg7" />
+    <bpmn:sequenceFlow id="SequenceFlow_14lpg7c" sourceRef="SendTask_1h9b21l" targetRef="EndEvent_0encdue" />
+    <bpmn:sendTask id="SendTask_0b8jqma" name="Hệ thống thông báo lái xe qua SMS" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${driverMobile}@gmobile.vnsms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị: ${driverName},<br/><br/>	Vui lòng đưa Anh/Chị: ${owner} đi ${purpose}, ghi chú: ${note}. <br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/><br/>Cám ơn!.]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0vt8tj0</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0qa2wyx</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sendTask id="SendTask_16whivg" name="Hệ thống thông báo người đi" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${requester.getMail()}sms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>Anh/Chị đã được phê duyệt xe của Công ty để: ${purpose}. Vui lòng liên hệ với:  <br/><br/>Lái xe: ${driverName} 			Số ĐT: ${driverMobile}			Biển số xe: ${vehicleNumber}.<br/>Thông tin: ${vehicleContactInfo}.<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0qa2wyx</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_182t3se</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="UserTask_0saz5wd" name="Quản lý trực tiếp phê duyệt" camunda:formKey="embedded:app:forms/manager-review-request-form.html" camunda:assignee="#{ldapDAO.getManagerSAMAccountName(owner)}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="submitedPurpose">
+            <camunda:script scriptFormat="freemarker">${purpose}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="submitedStartTime">
+            <camunda:script scriptFormat="freemarker">${startTime}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="submitedStopTime">
+            <camunda:script scriptFormat="freemarker">${stopTime}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="submitedNote">
+            <camunda:script scriptFormat="freemarker">${note}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="isApproved">no</camunda:inputParameter>
+          <camunda:outputParameter name="lineManagerApproved">
+            <camunda:script scriptFormat="freemarker">${isApproved}</camunda:script>
+          </camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0sjbkrx</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_0f8vjbh</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1hc2uql</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="UserTask_12rxbec" name="Lễ tân chọn xe" camunda:formKey="embedded:app:forms/reception-review-form.html" camunda:assignee="#{ldapDAO.getUserByGroupMembership(&#34;RLE_Receptionist&#34;).getSAMAccountName()}" camunda:candidateGroups="RLE_Receptionist_Backup">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="type">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:inputParameter name="number">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:inputParameter name="contactInfo">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:inputParameter name="driverMobile">0</camunda:inputParameter>
+          <camunda:inputParameter name="driverName">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:outputParameter name="vehicleType">
+            <camunda:script scriptFormat="freemarker">${type}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="vehicleNumber">
+            <camunda:script scriptFormat="freemarker">${number}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="vehicleContactInfo">
+            <camunda:script scriptFormat="freemarker">${contactInfo}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="driverMobile">
+            <camunda:script scriptFormat="freemarker">${driverMobile}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="driverName">
+            <camunda:script scriptFormat="freemarker">${driverName}</camunda:script>
+          </camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1lgqdkc</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_19j99y8</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="UserTask_0e52eba" name="Người đi báo cáo" camunda:formKey="embedded:app:forms/requester-review-submitedform.html" camunda:assignee="#{requester.getSAMAccountName()}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="reportedStartTime">${startTime}</camunda:inputParameter>
+          <camunda:inputParameter name="reportedStopTime">${stopTime}</camunda:inputParameter>
+          <camunda:inputParameter name="reportedExtraFee">0</camunda:inputParameter>
+          <camunda:inputParameter name="reportedExtraFeeJustification">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:inputParameter name="reportedResult">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:inputParameter name="cancelReason">Chưa chọn giá trị</camunda:inputParameter>
+          <camunda:outputParameter name="actualStartTime">
+            <camunda:script scriptFormat="freemarker">${reportedStartTime}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="actualStopTime">
+            <camunda:script scriptFormat="freemarker">${reportedStopTime}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="actualExtraFee">
+            <camunda:script scriptFormat="freemarker">${reportedExtraFee.toString()}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="actualExtraFeeJustification">
+            <camunda:script scriptFormat="freemarker">${reportedExtraFeeJustification}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="actualResult">
+            <camunda:script scriptFormat="freemarker">${reportedResult}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="cancelReason">
+            <camunda:script scriptFormat="freemarker">${cancelReason}</camunda:script>
+          </camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1ump34t</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0g42tdr</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sendTask id="SendTask_0okapo5" name="Hệ thống thông báo lễ tân" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to"><![CDATA[${ldapDAO.getUserByGroupMembership("RLE_Receptionist").getMail()}]]></camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị<br/><br/>Anh/Chị: ${owner}, mục đích sử dụng xe: ${purpose}, ngày: Từ ${startTime} tới ${stopTime} đã kết thúc công việc nhưng chưa điền form xác nhận kết thúc chuyến đi. Đề nghị Anh/Chị nhắc nhở để hoàn thành công việc.<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_03y6j0y</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_13vol5b</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sendTask id="SendTask_1qfpa06" name="Hệ thống nhắc người đi" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${requester.getMail()}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content"><![CDATA[Kính gửi Anh/Chi,<br/><br/>Anh/ chị vui lòng xác nhận sau khi đã kết thúc chuyến đi chậm nhất là 1/2 ngày làm việc.<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1niht6v</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_18vr3dq</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_0q2m4a2" name="Hoàn thành" sourceRef="ExclusiveGateway_0ft5id6" targetRef="ServiceTask_1eme9s4">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${actualResult == 'completed'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="ServiceTask_1eme9s4" name="Cập nhật database" camunda:class="vn.gmobile.vehiclebooking.delegate.UpdateDatabaseDelegate">
+      <bpmn:incoming>SequenceFlow_0q2m4a2</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_06bdoyk</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_05imq09">
+        <bpmn:targetRef>DataStoreReference_02mnkvu</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_0c7v78p" name="Đã kết thúc chuyến đi">
+      <bpmn:incoming>SequenceFlow_06bdoyk</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_06bdoyk" sourceRef="ServiceTask_1eme9s4" targetRef="EndEvent_0c7v78p" />
+    <bpmn:dataStoreReference id="DataStoreReference_02mnkvu" />
+    <bpmn:sequenceFlow id="SequenceFlow_1ump34t" sourceRef="ExclusiveGateway_03vy2yu" targetRef="UserTask_0e52eba" />
+    <bpmn:userTask id="UserTask_1rlgr8m" name="Người đi sửa đổi kế hoạch" camunda:formKey="embedded:app:forms/edit-request-form.html" camunda:assignee="#{requester.getSAMAccountName()}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="editedPurpose">${purpose}</camunda:inputParameter>
+          <camunda:inputParameter name="editedStartTime">
+            <camunda:script scriptFormat="freemarker">${startTime}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="editedStopTime">
+            <camunda:script scriptFormat="freemarker">${stopTime}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="editedNote">${note}</camunda:inputParameter>
+          <camunda:outputParameter name="purpose">
+            <camunda:script scriptFormat="freemarker">${editedPurpose}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="startTime">
+            <camunda:script scriptFormat="freemarker">${editedStartTime}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="stopTime">
+            <camunda:script scriptFormat="freemarker">${editedStopTime}</camunda:script>
+          </camunda:outputParameter>
+          <camunda:outputParameter name="note">
+            <camunda:script scriptFormat="freemarker">${editedNote}</camunda:script>
+          </camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_16ij6cd</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_18riiqi</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="SequenceFlow_18riiqi" sourceRef="UserTask_1rlgr8m" targetRef="SendTask_072peqr" />
+    <bpmn:sequenceFlow id="SequenceFlow_0sjbkrx" sourceRef="SendTask_09wb76v" targetRef="UserTask_0saz5wd" />
+    <bpmn:sendTask id="SendTask_09wb76v" name="Hệ thống thông báo quản lý" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${ldapDAO.getManagerMail(owner)}sms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Phê duyệt yêu cầu đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>Anh/ Chị vui lòng phê duyệt cho: ${owner} được sử dụng xe của Công Ty.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/>Ghi chú: ${note}<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1jzz2vx</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0sjbkrx</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_0m76rsp">
+      <bpmn:incoming>SequenceFlow_0qdc3yv</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0vt8tj0</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_04qxaqc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_04qxaqc" name="taxi" sourceRef="ExclusiveGateway_0m76rsp" targetRef="SendTask_027wp1n">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{vehicleType == 'taxi'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_0qa2wyx" sourceRef="SendTask_0b8jqma" targetRef="SendTask_16whivg" />
+    <bpmn:sequenceFlow id="SequenceFlow_182t3se" sourceRef="SendTask_16whivg" targetRef="ExclusiveGateway_03vy2yu" />
+    <bpmn:sendTask id="SendTask_027wp1n" name="Thông báo người đặt nhận thẻ taxi" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${requester.getMail()}sms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>	Anh/Chị vui lòng nhận thẻ taxi tại Lễ Tân, số thẻ taxi/thông tin liên hệ: ${vehicleContactInfo}.<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_04qxaqc</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1avdrwz</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1avdrwz" sourceRef="SendTask_027wp1n" targetRef="ExclusiveGateway_03vy2yu" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_03vy2yu">
+      <bpmn:incoming>SequenceFlow_182t3se</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1avdrwz</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1ump34t</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_1lgqdkc" sourceRef="SendTask_1gzx58u" targetRef="UserTask_12rxbec" />
+    <bpmn:sendTask id="SendTask_1gzx58u" name="Thông báo lễ tân" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker"><![CDATA[${ldapDAO.getUserByGroupMembership("RLE_Receptionist").getMail()}sms]]></camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="subject">Duyệt yêu cầu đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>Anh/ Chị vui lòng phê duyệt cho: ${owner} được sử dụng xe của Công Ty.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/>Ghi chú: ${note}<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_07gfgpg</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1lgqdkc</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_0f8vjbh" sourceRef="SendTask_072peqr" targetRef="UserTask_0saz5wd" />
+    <bpmn:sendTask id="SendTask_072peqr" name="Thông báo quản lý chỉnh sửa chuyến đi" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${ldapDAO.getManagerMail(owner)}sms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo chỉnh sửa chuyến đi</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị,<br/><br/>Anh/ Chị vui lòng phê duyệt cho: ${owner} được sử dụng xe của Công Ty.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/>Ghi chú: ${note}<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_18riiqi</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0f8vjbh</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_19n2cic" attachedToRef="SendTask_0b8jqma">
+      <bpmn:compensateEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:sendTask id="SendTask_1udzhij" name="Thông báo lái xe hủy yêu cầu" isForCompensation="true" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${driverMobile}@gmobile.vnsms</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo hủy đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi  Anh/Chị,<br/><br/>Vì lý do: ${cancelReason} nên anh/chị ${owner} hoãn ko sử dụng xe của Công ty nữa.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/><br/>Cám ơn!.]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1jkj2ld" sourceRef="ExclusiveGateway_0ft5id6" targetRef="IntermediateThrowEvent_0cl36kq" />
+    <bpmn:intermediateThrowEvent id="IntermediateThrowEvent_0cl36kq" name="Hủy hoặc thay đổi yêu cầu">
+      <bpmn:incoming>SequenceFlow_1jkj2ld</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1ok2mke</bpmn:outgoing>
+      <bpmn:compensateEventDefinition activityRef="SendTask_0b8jqma" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1ok2mke" sourceRef="IntermediateThrowEvent_0cl36kq" targetRef="ExclusiveGateway_0xvvz19" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_0xvvz19" name="Cần sửa đổi?">
+      <bpmn:incoming>SequenceFlow_1ok2mke</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_16ij6cd</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_09ftl06</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_16ij6cd" name="Y" sourceRef="ExclusiveGateway_0xvvz19" targetRef="UserTask_1rlgr8m">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${actualResult == 'changed'}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_1gs48wo" name="Chuyến đi bị hủy">
+      <bpmn:incoming>SequenceFlow_0e9fgb0</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="SendTask_0cfzfa6" name="Thông báo lễ tân hủy đặt xe" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker"><![CDATA[${ldapDAO.getUserByGroupMembership("RLE_Receptionist").getMail()}]]></camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo hủy đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi  Anh/Chị,<br/><br/>Vì lý do: ${cancelReason} nên anh/chị ${owner} hoãn ko sử dụng xe của Công ty nữa.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/><br/>Cám ơn!.]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0kfu661</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0e9fgb0</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_03y6j0y" sourceRef="InclusiveGateway_1243rpw" targetRef="SendTask_0okapo5" />
+    <bpmn:inclusiveGateway id="InclusiveGateway_1243rpw">
+      <bpmn:incoming>SequenceFlow_0gyv94m</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_03y6j0y</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_0ryd7kd</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_0ryd7kd" sourceRef="InclusiveGateway_1243rpw" targetRef="SendTask_0zlejmn" />
+    <bpmn:sendTask id="SendTask_0zlejmn" name="Hệ thống thông báo quản lý" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${ldapDAO.getManagerMail(owner)}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi Anh/Chị<br/><br/>Anh/Chị: ${owner}, mục đích sử dụng xe: ${purpose}, ngày: Từ ${startTime} tới ${stopTime} đã kết thúc công việc nhưng chưa điền form xác nhận kết thúc chuyến đi. Đề nghị Anh/Chị nhắc nhở để hoàn thành công việc.<br/>Tại địa chỉ http://bpm.gmobile.vn<br/><br/>Cảm ơn!]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0ryd7kd</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1onk4xk</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="EndEvent_1v0ovs9">
+      <bpmn:incoming>SequenceFlow_1onk4xk</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1onk4xk" sourceRef="SendTask_0zlejmn" targetRef="EndEvent_1v0ovs9" />
+    <bpmn:sendTask id="SendTask_0d6wign" name="Thông báo quản lý hủy đặt xe" camunda:class="vn.gmobile.vehiclebooking.delegate.NotifyByEmail">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="to">
+            <camunda:script scriptFormat="freemarker">${ldapDAO.getManagerMail(owner)}</camunda:script>
+          </camunda:inputParameter>
+          <camunda:inputParameter name="from">no-reply@gmobile.vn</camunda:inputParameter>
+          <camunda:inputParameter name="subject">Thông báo hủy đặt xe</camunda:inputParameter>
+          <camunda:inputParameter name="content">
+            <camunda:script scriptFormat="freemarker"><![CDATA[Kính gửi  Anh/Chị,<br/><br/>Vì lý do: ${cancelReason} nên anh/chị ${owner} hoãn ko sử dụng xe của Công ty nữa.<br/>Mục đích sd: ${purpose}.<br/>Khởi hành: ${startTime}<br/>Kết thúc: ${stopTime}<br/><br/>Cám ơn!.]]></camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_09ftl06</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0kfu661</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="SequenceFlow_09ftl06" sourceRef="ExclusiveGateway_0xvvz19" targetRef="SendTask_0d6wign" />
+    <bpmn:sequenceFlow id="SequenceFlow_0kfu661" sourceRef="SendTask_0d6wign" targetRef="SendTask_0cfzfa6" />
+    <bpmn:sequenceFlow id="SequenceFlow_0e9fgb0" sourceRef="SendTask_0cfzfa6" targetRef="EndEvent_1gs48wo" />
+    <bpmn:textAnnotation id="TextAnnotation_12gu8oe">    <bpmn:text>Thông báo qua email thông tin xe, lái xe</bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_1c3ggp9">    <bpmn:text><![CDATA[- Báo hủy hoặc thay đổi lịch hoặc
+- Cập nhật: hành trình, vé phát sinh nếu có, thời gian đi & về thực tế sau khi thực hiện chuyến đi
+- Nếu dùng thẻ taxi thì báo cáo thời gian đi,về và số tiền]]></bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_1cycpsk">    <bpmn:text><![CDATA[Mail
+SMS]]></bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:association id="Association_046e8gf" sourceRef="UserTask_0e52eba" targetRef="TextAnnotation_1c3ggp9" />
+    <bpmn:association id="Association_0qg0vcu" sourceRef="SendTask_12mrk3j" targetRef="TextAnnotation_1cycpsk" />
+    <bpmn:association id="Association_0crohq1" sourceRef="SendTask_1h9b21l" targetRef="TextAnnotation_1cycpsk" />
+    <bpmn:textAnnotation id="TextAnnotation_1lj96ob">    <bpmn:text>Trường hợp cần gấp Lễ tân chủ động gọi điện</bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_1pw9wx3">    <bpmn:text>Căn cứ theo giờ về được phê duyệt</bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_0yfsybr">    <bpmn:text>Qua email</bpmn:text>
+</bpmn:textAnnotation>
+    <bpmn:association id="Association_1vkce8w" sourceRef="SendTask_0okapo5" targetRef="TextAnnotation_0yfsybr" />
+    <bpmn:association id="Association_1y0g1aa" sourceRef="SendTask_1qfpa06" targetRef="TextAnnotation_0yfsybr" />
+    <bpmn:association id="Association_0f8t77f" associationDirection="One" sourceRef="BoundaryEvent_19n2cic" targetRef="SendTask_1udzhij" />
+    <bpmn:association id="Association_0988ljb" sourceRef="SendTask_0b8jqma" targetRef="TextAnnotation_1lj96ob" />
+    <bpmn:association id="Association_1p0foek" sourceRef="SendTask_16whivg" targetRef="TextAnnotation_12gu8oe" />
+    <bpmn:association id="Association_0ce66nx" sourceRef="BoundaryEvent_0c45o5u" targetRef="TextAnnotation_1pw9wx3" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="vehicle-booking-process">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartCarBooking">
+        <dc:Bounds x="57" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="30" y="118" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_19sprnd_di" bpmnElement="ExclusiveGateway_19sprnd" isMarkerVisible="true">
+        <dc:Bounds x="412" y="75" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="392" y="51" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1ct5c6a_di" bpmnElement="ExclusiveGateway_1ct5c6a" isMarkerVisible="true">
+        <dc:Bounds x="707" y="75" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="687" y="54" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_12gu8oe_di" bpmnElement="TextAnnotation_12gu8oe">
+        <dc:Bounds x="1110" y="-50" width="296" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1c3ggp9_di" bpmnElement="TextAnnotation_1c3ggp9">
+        <dc:Bounds x="1430" y="-61" width="290" height="98" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0wfv67t_di" bpmnElement="EndEvent_0wfv67t">
+        <dc:Bounds x="1642" y="207" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1615" y="168" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0ft5id6_di" bpmnElement="ExclusiveGateway_0ft5id6" isMarkerVisible="true">
+        <dc:Bounds x="1776" y="75" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1712" y="110" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1lmz4ht_di" bpmnElement="EndEvent_1lmz4ht">
+        <dc:Bounds x="1642" y="405" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1615" y="441" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1umxeg7_di" bpmnElement="EndEvent_1umxeg7">
+        <dc:Bounds x="555" y="207" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="528" y="243" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_12mrk3j_di" bpmnElement="SendTask_12mrk3j">
+        <dc:Bounds x="387" y="185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0encdue_di" bpmnElement="EndEvent_0encdue">
+        <dc:Bounds x="817" y="210" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="790" y="246" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_1h9b21l_di" bpmnElement="SendTask_1h9b21l">
+        <dc:Bounds x="682" y="185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1cycpsk_di" bpmnElement="TextAnnotation_1cycpsk">
+        <dc:Bounds x="584" y="296" width="73" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1jzz2vx_di" bpmnElement="SequenceFlow_1jzz2vx">
+        <di:waypoint xsi:type="dc:Point" x="93" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="168" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="194" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1hc2uql_di" bpmnElement="SequenceFlow_1hc2uql">
+        <di:waypoint xsi:type="dc:Point" x="388" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="412" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="354" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1rwi32f_di" bpmnElement="SequenceFlow_lineManagerNotApprroved">
+        <di:waypoint xsi:type="dc:Point" x="437" y="125" />
+        <di:waypoint xsi:type="dc:Point" x="437" y="155" />
+        <di:waypoint xsi:type="dc:Point" x="437" y="155" />
+        <di:waypoint xsi:type="dc:Point" x="437" y="185" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="410" y="142" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_07gfgpg_di" bpmnElement="SequenceFlow_07gfgpg">
+        <di:waypoint xsi:type="dc:Point" x="462" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="480" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="425" y="75" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_19j99y8_di" bpmnElement="SequenceFlow_19j99y8">
+        <di:waypoint xsi:type="dc:Point" x="692" y="99" />
+        <di:waypoint xsi:type="dc:Point" x="707" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="633" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1smsb7g_di" bpmnElement="SequenceFlow_1smsb7g">
+        <di:waypoint xsi:type="dc:Point" x="732" y="125" />
+        <di:waypoint xsi:type="dc:Point" x="732" y="185" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="702" y="130" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0qdc3yv_di" bpmnElement="SequenceFlow_0qdc3yv">
+        <di:waypoint xsi:type="dc:Point" x="757" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="858" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="733" y="79" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0vt8tj0_di" bpmnElement="SequenceFlow_0vt8tj0">
+        <di:waypoint xsi:type="dc:Point" x="908" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="974" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="904" y="106" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_046e8gf_di" bpmnElement="Association_046e8gf">
+        <di:waypoint xsi:type="dc:Point" x="1472" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="1536" y="37" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_13vol5b_di" bpmnElement="SequenceFlow_13vol5b">
+        <di:waypoint xsi:type="dc:Point" x="1605" y="225" />
+        <di:waypoint xsi:type="dc:Point" x="1642" y="225" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1690" y="299" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_18vr3dq_di" bpmnElement="SequenceFlow_18vr3dq">
+        <di:waypoint xsi:type="dc:Point" x="1605" y="423" />
+        <di:waypoint xsi:type="dc:Point" x="1642" y="423" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1682" y="-70" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0g42tdr_di" bpmnElement="SequenceFlow_0g42tdr">
+        <di:waypoint xsi:type="dc:Point" x="1483" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="1776" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1673" y="85" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BoundaryEvent_1pw3hcy_di" bpmnElement="BoundaryEvent_1pw3hcy">
+        <dc:Bounds x="1440" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1459" y="162" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0gyv94m_di" bpmnElement="SequenceFlow_0gyv94m">
+        <di:waypoint xsi:type="dc:Point" x="1458" y="158" />
+        <di:waypoint xsi:type="dc:Point" x="1458" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1525" y="219" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BoundaryEvent_0c45o5u_di" bpmnElement="BoundaryEvent_0c45o5u">
+        <dc:Bounds x="1395" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1332" y="160" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1niht6v_di" bpmnElement="SequenceFlow_1niht6v">
+        <di:waypoint xsi:type="dc:Point" x="1413" y="158" />
+        <di:waypoint xsi:type="dc:Point" x="1413" y="423" />
+        <di:waypoint xsi:type="dc:Point" x="1505" y="423" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1498" y="-19" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0ibh7bu_di" bpmnElement="SequenceFlow_0ibh7bu">
+        <di:waypoint xsi:type="dc:Point" x="487" y="225" />
+        <di:waypoint xsi:type="dc:Point" x="555" y="225" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="411" y="-50" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_14lpg7c_di" bpmnElement="SequenceFlow_14lpg7c">
+        <di:waypoint xsi:type="dc:Point" x="782" y="228" />
+        <di:waypoint xsi:type="dc:Point" x="817" y="228" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="687" y="-52" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0qg0vcu_di" bpmnElement="Association_0qg0vcu">
+        <di:waypoint xsi:type="dc:Point" x="487" y="254" />
+        <di:waypoint xsi:type="dc:Point" x="584" y="299" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0crohq1_di" bpmnElement="Association_0crohq1">
+        <di:waypoint xsi:type="dc:Point" x="689" y="262" />
+        <di:waypoint xsi:type="dc:Point" x="650" y="296" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_1lj96ob_di" bpmnElement="TextAnnotation_1lj96ob">
+        <dc:Bounds x="800" y="-64" width="201" height="67" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_0b8jqma_di" bpmnElement="SendTask_0b8jqma">
+        <dc:Bounds x="974" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_16whivg_di" bpmnElement="SendTask_16whivg">
+        <dc:Bounds x="1102" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_0saz5wd_di" bpmnElement="UserTask_0saz5wd">
+        <dc:Bounds x="288" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_12rxbec_di" bpmnElement="UserTask_12rxbec">
+        <dc:Bounds x="592" y="59" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_0e52eba_di" bpmnElement="UserTask_0e52eba">
+        <dc:Bounds x="1383" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_0okapo5_di" bpmnElement="SendTask_0okapo5">
+        <dc:Bounds x="1505" y="185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendTask_1qfpa06_di" bpmnElement="SendTask_1qfpa06">
+        <dc:Bounds x="1505" y="383" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0q2m4a2_di" bpmnElement="SequenceFlow_0q2m4a2">
+        <di:waypoint xsi:type="dc:Point" x="1826" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="1897" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1802" y="79" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1eme9s4_di" bpmnElement="ServiceTask_1eme9s4">
+        <dc:Bounds x="1897" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0c7v78p_di" bpmnElement="EndEvent_0c7v78p">
+        <dc:Bounds x="2072" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2045" y="118" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_06bdoyk_di" bpmnElement="SequenceFlow_06bdoyk">
+        <di:waypoint xsi:type="dc:Point" x="1997" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="2072" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1996" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataStoreReference_02mnkvu_di" bpmnElement="DataStoreReference_02mnkvu">
+        <dc:Bounds x="2009" y="-20" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1989" y="30" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1pw9wx3_di" bpmnElement="TextAnnotation_1pw9wx3">
+        <dc:Bounds x="1300" y="362" width="102" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0yfsybr_di" bpmnElement="TextAnnotation_0yfsybr">
+        <dc:Bounds x="1686" y="296" width="100" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_1vkce8w_di" bpmnElement="Association_1vkce8w">
+        <di:waypoint xsi:type="dc:Point" x="1605" y="241" />
+        <di:waypoint xsi:type="dc:Point" x="1686" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1y0g1aa_di" bpmnElement="Association_1y0g1aa">
+        <di:waypoint xsi:type="dc:Point" x="1605" y="410" />
+        <di:waypoint xsi:type="dc:Point" x="1662" y="379" />
+        <di:waypoint xsi:type="dc:Point" x="1686" y="334" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ump34t_di" bpmnElement="SequenceFlow_1ump34t">
+        <di:waypoint xsi:type="dc:Point" x="1281" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="1383" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1305" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="UserTask_1rlgr8m_di" bpmnElement="UserTask_1rlgr8m">
+        <dc:Bounds x="1751" y="347" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_18riiqi_di" bpmnElement="SequenceFlow_18riiqi">
+        <di:waypoint xsi:type="dc:Point" x="1801" y="427" />
+        <di:waypoint xsi:type="dc:Point" x="1801" y="461" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="995" y="28" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0sjbkrx_di" bpmnElement="SequenceFlow_0sjbkrx">
+        <di:waypoint xsi:type="dc:Point" x="268" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="288" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="233" y="90" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_09wb76v_di" bpmnElement="SendTask_09wb76v">
+        <dc:Bounds x="168" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0m76rsp_di" bpmnElement="ExclusiveGateway_0m76rsp" isMarkerVisible="true">
+        <dc:Bounds x="858" y="75" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="838" y="125" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_04qxaqc_di" bpmnElement="SequenceFlow_04qxaqc">
+        <di:waypoint xsi:type="dc:Point" x="883" y="125" />
+        <di:waypoint xsi:type="dc:Point" x="883" y="379" />
+        <di:waypoint xsi:type="dc:Point" x="1017" y="379" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="856" y="215" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0qa2wyx_di" bpmnElement="SequenceFlow_0qa2wyx">
+        <di:waypoint xsi:type="dc:Point" x="1074" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="1102" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1011" y="215" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_182t3se_di" bpmnElement="SequenceFlow_182t3se">
+        <di:waypoint xsi:type="dc:Point" x="1202" y="100" />
+        <di:waypoint xsi:type="dc:Point" x="1231" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1149" y="215" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_027wp1n_di" bpmnElement="SendTask_027wp1n">
+        <dc:Bounds x="1017" y="339" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1avdrwz_di" bpmnElement="SequenceFlow_1avdrwz">
+        <di:waypoint xsi:type="dc:Point" x="1117" y="379" />
+        <di:waypoint xsi:type="dc:Point" x="1256" y="379" />
+        <di:waypoint xsi:type="dc:Point" x="1256" y="125" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1135" y="251" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_03vy2yu_di" bpmnElement="ExclusiveGateway_03vy2yu" isMarkerVisible="true">
+        <dc:Bounds x="1231" y="75" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1211" y="125" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1lgqdkc_di" bpmnElement="SequenceFlow_1lgqdkc">
+        <di:waypoint xsi:type="dc:Point" x="580" y="99" />
+        <di:waypoint xsi:type="dc:Point" x="592" y="99" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="541" y="89" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_1gzx58u_di" bpmnElement="SendTask_1gzx58u">
+        <dc:Bounds x="480" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0f8vjbh_di" bpmnElement="SequenceFlow_0f8vjbh">
+        <di:waypoint xsi:type="dc:Point" x="1801" y="541" />
+        <di:waypoint xsi:type="dc:Point" x="1801" y="585" />
+        <di:waypoint xsi:type="dc:Point" x="338" y="585" />
+        <di:waypoint xsi:type="dc:Point" x="338" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="470" y="-219" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_072peqr_di" bpmnElement="SendTask_072peqr">
+        <dc:Bounds x="1751" y="461" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_19n2cic_di" bpmnElement="BoundaryEvent_19n2cic">
+        <dc:Bounds x="1019.3183023872679" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="992.3183023872679" y="158" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_0f8t77f_di" bpmnElement="Association_0f8t77f">
+        <di:waypoint xsi:type="dc:Point" x="1037" y="158" />
+        <di:waypoint xsi:type="dc:Point" x="1037" y="217" />
+        <di:waypoint xsi:type="dc:Point" x="1066" y="217" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_1udzhij_di" bpmnElement="SendTask_1udzhij">
+        <dc:Bounds x="1066" y="177" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1jkj2ld_di" bpmnElement="SequenceFlow_1jkj2ld">
+        <di:waypoint xsi:type="dc:Point" x="1801" y="125" />
+        <di:waypoint xsi:type="dc:Point" x="1801" y="163" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1756" y="24.5" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="IntermediateThrowEvent_0cl36kq_di" bpmnElement="IntermediateThrowEvent_0cl36kq">
+        <dc:Bounds x="1783" y="163" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1814" y="171" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ok2mke_di" bpmnElement="SequenceFlow_1ok2mke">
+        <di:waypoint xsi:type="dc:Point" x="1801" y="199" />
+        <di:waypoint xsi:type="dc:Point" x="1801" y="236" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1440" y="-126.5" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0xvvz19_di" bpmnElement="ExclusiveGateway_0xvvz19" isMarkerVisible="true">
+        <dc:Bounds x="1776" y="236" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1756" y="286" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_16ij6cd_di" bpmnElement="SequenceFlow_16ij6cd">
+        <di:waypoint xsi:type="dc:Point" x="1801" y="286" />
+        <di:waypoint xsi:type="dc:Point" x="1801" y="347" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1768" y="310.5" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_1gs48wo_di" bpmnElement="EndEvent_1gs48wo">
+        <dc:Bounds x="2142" y="243" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2141" y="282" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_05imq09_di" bpmnElement="DataOutputAssociation_05imq09">
+        <di:waypoint xsi:type="dc:Point" x="1984" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="2011" y="30" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0988ljb_di" bpmnElement="Association_0988ljb">
+        <di:waypoint xsi:type="dc:Point" x="986" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="932" y="3" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1p0foek_di" bpmnElement="Association_1p0foek">
+        <di:waypoint xsi:type="dc:Point" x="1186" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="1237" y="0" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0ce66nx_di" bpmnElement="Association_0ce66nx">
+        <di:waypoint xsi:type="dc:Point" x="1409" y="157" />
+        <di:waypoint xsi:type="dc:Point" x="1357" y="362" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_0cfzfa6_di" bpmnElement="SendTask_0cfzfa6">
+        <dc:Bounds x="2015" y="221" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_03y6j0y_di" bpmnElement="SequenceFlow_03y6j0y">
+        <di:waypoint xsi:type="dc:Point" x="1483" y="225" />
+        <di:waypoint xsi:type="dc:Point" x="1505" y="225" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1449" y="215" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="InclusiveGateway_1243rpw_di" bpmnElement="InclusiveGateway_1243rpw">
+        <dc:Bounds x="1433" y="200" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1413" y="250" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0ryd7kd_di" bpmnElement="SequenceFlow_0ryd7kd">
+        <di:waypoint xsi:type="dc:Point" x="1458" y="250" />
+        <di:waypoint xsi:type="dc:Point" x="1458" y="321" />
+        <di:waypoint xsi:type="dc:Point" x="1505" y="321" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1413" y="275.5" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_0zlejmn_di" bpmnElement="SendTask_0zlejmn">
+        <dc:Bounds x="1505" y="281" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1v0ovs9_di" bpmnElement="EndEvent_1v0ovs9">
+        <dc:Bounds x="1626.1799999999998" y="303" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1599.1799999999998" y="339" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1onk4xk_di" bpmnElement="SequenceFlow_1onk4xk">
+        <di:waypoint xsi:type="dc:Point" x="1605" y="321" />
+        <di:waypoint xsi:type="dc:Point" x="1626" y="321" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1570.5" y="311" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_0d6wign_di" bpmnElement="SendTask_0d6wign">
+        <dc:Bounds x="1871" y="221" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_09ftl06_di" bpmnElement="SequenceFlow_09ftl06">
+        <di:waypoint xsi:type="dc:Point" x="1826" y="261" />
+        <di:waypoint xsi:type="dc:Point" x="1871" y="261" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1803.5" y="251" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0kfu661_di" bpmnElement="SequenceFlow_0kfu661">
+        <di:waypoint xsi:type="dc:Point" x="1971" y="261" />
+        <di:waypoint xsi:type="dc:Point" x="2015" y="261" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1948" y="251" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0e9fgb0_di" bpmnElement="SequenceFlow_0e9fgb0">
+        <di:waypoint xsi:type="dc:Point" x="2115" y="261" />
+        <di:waypoint xsi:type="dc:Point" x="2142" y="261" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2083.5" y="251" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

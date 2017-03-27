@@ -1,0 +1,85 @@
+<form cam-form role="form" >
+  <script cam-script type="text/form-script">
+ var variableManager = camForm.variableManager;
+
+
+inject([ '$scope', '$window', '$document', function($scope, $window, $document) {
+      camForm.on('form-loaded', function() {
+		variableManager.fetchVariable('purpose');
+		variableManager.fetchVariable('startTime');
+		variableManager.fetchVariable('stopTime');
+		variableManager.fetchVariable('note');
+		variableManager.fetchVariable('owner');
+		$scope.window = $window;
+		$scope.document = $document;
+    	});
+    }]);
+camForm.on('variables-applied', function() {
+	$scope.owner1 = camForm.variableManager.variable('owner').value;
+//$scope.submitedPurpose = camForm.variableManager.variable('purpose').value;
+//$scope.submitedStartTime = camForm.variableManager.variable('startTime').value;
+//$scope.submitedStopTime = camForm.variableManager.variable('stopTime').value;
+//$scope.submitedNote = camForm.variableManager.variable('note').value;
+});
+
+$scope.setApproveValue = function(){
+	if($scope.approved == true){
+			$scope.isApproved = 'true';
+		} else {
+			$scope.isApproved = 'false';
+		}
+}
+	camForm.on('submit', function(evt) {
+			var r = $scope.window.confirm("Xác nhận thông tin đã nhập");
+			if (r == true) {
+    			console.log('You pressed OK!');
+			} else {
+    			console.log('You pressed Cancel!');
+				evt.submitPrevented = true;
+			}
+		
+    });
+</script>
+
+   
+<fieldset>
+
+<!-- Form Name -->
+<legend>Phê duyệt yêu cầu sử dụng xe</legend>
+  
+<!-- Text input-->
+<div class="form-group">
+	<label for="owner">Người yêu cầu</label> 
+	<input id="owner" cam-variable-name="owner1" cam-variable-type="String" name="owner" class="form-control" type="text" readonly="true">
+</div>
+<div class="form-group">
+	<label for="purpose">Mục đích</label> 
+	<input id="submitedPurpose" cam-variable-name="submitedPurpose" cam-variable-type="String" name="submitedPurpose" class="form-control" type="text" readonly="true">
+</div>
+<div class="form-group">
+	<label for="starttime">Khởi hành</label>
+	<input class="form-control" type="text" cam-variable-name="submitedStartTime"
+	cam-variable-type="String" readonly="true">
+
+</div>
+<div class="form-group">
+	<label for="stopTime">Kết thúc</label>
+	<input class="form-control" type="text" cam-variable-type="String" cam-variable-name="submitedStopTime" readonly="true">
+
+</div>
+<div class="form-group">
+	<label for="note">Ghi chú</label> 
+	<input id="submitedNote" name="submitedNote" cam-variable-name="submitedNote" cam-variable-type="String" class="form-control" type="text" readonly="true">
+</div>
+<div class="form-group">
+		<label for="approved">Duyệt</label>
+		<select cam-variable-name="isApproved"
+        cam-variable-type="String" required>
+		  <option value="yes">yes</option>
+		  <option value="no">no</option>
+		</select>
+	</div>
+	
+	
+</fieldset>
+</form>

@@ -1,0 +1,131 @@
+<form cam-form role="form" >
+  <script type="text/javascript" src="moment-with-locales.js"></script>
+  
+  <link rel="stylesheet" href="bootstrap-datetimepicker.css" />
+  <script cam-script type="text/form-script">
+ var variableManager = camForm.variableManager;
+
+
+inject([ '$scope', '$window', '$document', function($scope, $window, $document) {
+      camForm.on('form-loaded', function() {
+		variableManager.fetchVariable('purpose');
+		variableManager.fetchVariable('startTime');
+		variableManager.fetchVariable('stopTime');
+		variableManager.fetchVariable('vehicleType');
+		$scope.window = $window;
+		$scope.document = $document;
+    	});
+    }]);
+var setVehicleType = function(vehicleType){
+	switch(vehicleType){
+		case 'car':
+			return 'Xe công ty';
+		case 'taxi':
+			return 'Xe taxi';
+		case 'none':
+			return 'Hết xe';
+	}
+}
+camForm.on('variables-applied', function() {
+		console.log('vehicle type: ' + camForm.variableManager.variable('vehicleType').value);
+		$scope.reportedExtraFee = 0;
+		$scope.vehicleType_review = setVehicleType(camForm.variableManager.variable('vehicleType').value);
+		console.log($scope.vehicleType_review);
+		$scope.purpose_review = camForm.variableManager.variable('purpose').value;
+		$scope.reportedExtraFeeJustification = '';
+		$scope.cancelReason = '';
+});
+
+$scope.reportedResultChange = function(){
+	if($scope.reportedResult=='completed'){
+		$scope.submitform_invisible = false;
+		$scope.cancelform_invisible = true;
+	}else{
+		$scope.submitform_invisible = true;
+		$scope.cancelform_invisible = false;
+	}
+}
+	camForm.on('submit', function(evt) {
+			var r = $scope.window.confirm("Xác nhận thông tin đã nhập");
+			if (r == true) {
+    			console.log('You pressed OK!');
+			} else {
+    			console.log('You pressed Cancel!');
+				evt.submitPrevented = true;
+			}
+		
+    });
+</script>
+<script type="text/javascript">
+            $(function () {
+            	$('#datetimepicker1').datetimepicker({
+    				format: "DD/MM/YYYY HH:mm:ss"
+    				});
+    				$('#datetimepicker2').datetimepicker({
+    				format: "DD/MM/YYYY HH:mm:ss"
+    				});
+            });
+        </script>
+   
+<fieldset>
+
+<!-- Form Name -->
+<legend>Xác nhận yêu cầu sử dụng xe</legend>
+  
+<!-- Text input-->
+<!--form to submit-->
+<div ng-hide="submitform_invisible">
+	<div class="form-group">
+		<label for="purpose_review">Mục đích đặt xe</label> 
+		<input cam-variable-name="purpose_review" cam-variable-type="String" class="form-control" type="text" readonly="true">
+	</div>
+	<div class="form-group">
+		<label for="vehicleType_review">Loại xe</label> 
+		<input cam-variable-name="vehicleType_review" cam-variable-type="String" class="form-control" type="text" readonly="true">
+	</div>
+	<div class="form-group">
+		<label for="startDate">Khởi hành</label> 
+		<div class='input-group date' id='datetimepicker1'>
+			<input type='text' cam-variable-name="reportedStartTime" cam-variable-type="String" class="form-control" />
+			<span class="input-group-addon">
+				<span class="glyphicon glyphicon-calendar"></span>
+			</span>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="startDate">Kết thúc</label> 
+		<div class='input-group date' id='datetimepicker2'>
+			<input type='text' cam-variable-name="reportedStopTime" cam-variable-type="String" class="form-control" />
+			<span class="input-group-addon">
+				<span class="glyphicon glyphicon-calendar"></span>
+			</span>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="reportedExtraFee">Chi phí(VND)</label> 
+		<input cam-variable-name="reportedExtraFee" cam-variable-type="Double" class="form-control" type="text">
+	</div>
+	<div class="form-group">
+		<label for="reportedExtraFeeJustification">Diễn giải chi phí phát sinh</label> 
+		<input cam-variable-name="reportedExtraFeeJustification" cam-variable-type="String" class="form-control" type="text">
+	</div>
+</div>
+<!-- Hủy  hoặc thay đổi-->
+<div class="form-group" ng-hide="cancelform_invisible">
+	<label for="cancelReason">Lý do hủy/thay đổi lịch trình</label> 
+	<input cam-variable-name="cancelReason" cam-variable-type="String" class="form-control" type="text">
+</div>
+<div class="form-group">
+		<label for="reportedResult">Lựa chọn báo cáo</label>
+		<select cam-variable-name="reportedResult"
+        cam-variable-type="String" required ng-change="reportedResultChange()">
+		  <option value="completed">Hoàn thành</option>
+		  <option value="canceled">Hủy</option>
+		   <option value="changed">Thay đổi lịch trình</option>
+		</select>
+	</div>
+	
+	
+</fieldset>
+</form>

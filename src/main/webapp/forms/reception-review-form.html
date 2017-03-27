@@ -1,0 +1,195 @@
+<form cam-form role="form" >
+  <script cam-script type="text/form-script">
+ var variableManager = camForm.variableManager;
+
+
+inject([ '$scope', '$window', '$document', function($scope, $window, $document) {
+      camForm.on('form-loaded', function() {
+		variableManager.fetchVariable('purpose');
+		variableManager.fetchVariable('startTime');
+		variableManager.fetchVariable('stopTime');
+		variableManager.fetchVariable('note');
+		variableManager.fetchVariable('owner');
+		variableManager.fetchVariable('drivers');
+		variableManager.fetchVariable('vehicles');
+		$scope.window = $window;
+		$scope.document = $document;
+		
+    	});
+    }]);
+camForm.on('variables-applied', function() {
+console.log('stopTime: ' + camForm.variableManager.variable('stopTime').value);
+$scope.purpose1 = camForm.variableManager.variable('purpose').value;
+$scope.startTime1 = camForm.variableManager.variable('startTime').value;
+$scope.stopTime1 = camForm.variableManager.variable('stopTime').value;
+console.log($scope.stopTime1);
+$scope.note1 = camForm.variableManager.variable('note').value;
+$scope.owner1 = camForm.variableManager.variable('owner').value;
+$scope.drivers = camForm.variableManager.variable('drivers').value;
+$scope.vehicles = camForm.variableManager.variable('vehicles').value;
+//re-set init value
+$scope.contactInfo = '';
+});
+
+
+//create variable driverMobile, driverName
+variableManager.createVariable({
+	name: 'driverMobile',
+	type: 'String',
+	value:'',
+	isDirty: true
+  });
+variableManager.createVariable({
+	name: 'driverName',
+	type: 'String',
+	value:'',
+	isDirty: true
+  });
+  variableManager.createVariable({
+	name: 'number',
+	type: 'String',
+	value:'',
+	isDirty: true
+  });
+  
+ 	$scope.drivermobile_showhide = function() {
+		 
+		if($scope.type == 'car'){
+			$scope.driver_mobile_invisible = false;
+			$scope.drivermobile_required = true;
+			$scope.car_required = true;
+			$scope.car_invisible = false;
+			//variableManager.variableValue('number', $scope._number);
+			//console.log($scope.vnumber);
+		} else {
+			$scope.driver_mobile_invisible = true;
+			$scope.drivermobile_required = false;
+			$scope.car_required = false;
+			$scope.car_invisible = true;
+			//variableManager.variableValue('number', '');
+		}
+	}
+$scope.getDriver = function(){
+	var driver = angular.fromJson($scope.driverSelect);
+	console.log(driver.mobile);
+	
+	variableManager.variableValue('driverMobile',driver.mobile);
+	variableManager.variableValue('driverName',driver.name);
+
+}
+camForm.on('submit', function(evt) {
+console.log($scope.drivers);
+console.log($scope.type);
+			var r = $scope.window.confirm("Xác nhận thông tin đã nhập");
+			if (r == true) {
+				if($scope.type == 'car'){
+			
+							variableManager.variableValue('number', $scope.vnumber);
+							console.log($scope.vnumber);
+						} else {
+							variableManager.variableValue('driverName','');
+							variableManager.variableValue('number', '');
+						}
+				 angular.forEach($scope.drivers,function(value,index){
+								console.log(value.name);
+								delete value.$$hashKey;
+							});
+
+
+				console.log($scope.vehicles);
+				 angular.forEach($scope.vehicles,function(value,index){
+								console.log(value.name);
+								delete value.$$hashKey;
+							});
+    			console.log('You pressed OK!');
+			} else {
+    			console.log('You pressed Cancel!');
+				evt.submitPrevented = true;
+			}
+if($scope.type == 'car'){
+			
+			variableManager.variableValue('number', $scope.vnumber);
+			console.log($scope.vnumber);
+		} else {
+
+			variableManager.variableValue('number', '');
+		}
+ angular.forEach($scope.drivers,function(value,index){
+                console.log(value.name);
+				delete value.$$hashKey;
+            });
+
+
+console.log($scope.vehicles);
+ angular.forEach($scope.vehicles,function(value,index){
+                console.log(value.name);
+				delete value.$$hashKey;
+            });
+
+});
+console.log($scope.drivers);
+</script>
+
+   
+<fieldset>
+
+<!-- Form Name -->
+<legend>Lễ tân chọn xe</legend>
+
+<div class="form-group">
+	<label for="owner">Người yêu cầu</label> 
+	<input cam-variable-name="owner1" cam-variable-type="String" class="form-control" type="text" readonly="true">
+</div>
+<div class="form-group">
+	<label for="purpose">Mục đích</label> 
+	<input cam-variable-name="purpose1" cam-variable-type="String" class="form-control" type="text" readonly="true">
+</div>
+<div class="form-group">
+	<label for="starttime">Khởi hành</label>
+	<input cam-variable-name="startTime1" cam-variable-type="String" class="form-control" type="text" readonly="true">
+
+</div>
+<div class="form-group">
+	<label for="stopTime">Kết thúc</label>
+	<input cam-variable-name="stopTime1" cam-variable-type="String" class="form-control" type="text" readonly="true">
+
+</div>
+<div class="form-group">
+	<label for="note">Ghi chú</label> 
+	<input cam-variable-name="note1" cam-variable-type="String" class="form-control" type="text" readonly="true">
+</div>
+<!-- Text input-->
+
+<div class="form-group">
+	<label for="type">Chọn phương tiện</label>
+	<select cam-variable-name="type"  style="width: 100%;"
+       cam-variable-type="String" ng-change="drivermobile_showhide()" required>
+	  <option value=car>Xe công ty</option>
+	  <option value="taxi">Thẻ taxi</option>
+	   <option value="none">Hết xe</option>
+	</select>
+</div>
+
+<!-- Xe cong ty -->
+<div class="form-group" ng-hide="car_invisible">
+	<label for="number_car">Biển số</label>
+	<select cam-variable-type="String" cam-variable-name="vnumber" style="width: 100%;" ng-required="car_required">
+      <option ng-repeat="vehicle in vehicles" value="{{vehicle.number}}">{{vehicle.number}}: {{vehicle.info}}</option>
+    </select>
+</div>
+
+<div class="form-group" >
+	<label for="contactInfo">Thông tin liên hệ</label>
+	<input class="form-control" type="text" cam-variable-type="String" cam-variable-name="contactInfo" >
+
+</div>
+<div class="form-group" ng-hide="driver_mobile_invisible">
+	<label for="driver">Điện thoại lái xe</label>
+	<select cam-variable-type="String" cam-variable-name="driverSelect" style="width: 100%;" ng-required="drivermobile_required" ng-change="getDriver()">
+      <option ng-repeat="driver in drivers" value="{{driver}}">{{driver.name}}: {{driver.mobile}}</option>
+    </select>
+
+</div>
+
+</fieldset>
+</form>
